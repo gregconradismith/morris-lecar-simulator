@@ -32,7 +32,7 @@ function axes(id,xmin,xmax,ymin,ymax,xlabel,ylabel){
  const c=canvas.getContext('2d');c.scale(dpr,dpr);const W=rect.width,H=rect.height,L=52,R=W-17,T=15,B=H-35;
  const X=x=>L+(x-xmin)/(xmax-xmin)*(R-L),Y=y=>B-(y-ymin)/(ymax-ymin)*(B-T);
  c.font='11px system-ui';c.lineWidth=1;
- for(let i=0;i<=4;i++){let a=xmin+(xmax-xmin)*i/4,b=ymin+(ymax-ymin)*i/4;c.strokeStyle='#e8e2d7';c.beginPath();c.moveTo(X(a),T);c.lineTo(X(a),B);c.moveTo(L,Y(b));c.lineTo(R,Y(b));c.stroke();c.fillStyle='#6b6e76';c.textAlign='center';c.fillText(a.toFixed(0),X(a),B+16);c.textAlign='right';c.fillText(Number(b.toFixed(2)),L-6,Y(b)+4);}
+ for(let i=0;i<=4;i++){let a=xmin+(xmax-xmin)*i/4,b=ymin+(ymax-ymin)*i/4;c.strokeStyle='#e8e2d7';c.beginPath();c.moveTo(X(a),T);c.lineTo(X(a),B);c.moveTo(L,Y(b));c.lineTo(R,Y(b));c.stroke();c.fillStyle='#6b6e76';c.textAlign=i===0?'left':i===4?'right':'center';c.fillText(a.toFixed(0),X(a),B+16);c.textAlign='right';c.fillText(Number(b.toFixed(2)),L-6,Y(b)+4);}
  c.textAlign='center';c.fillText(xlabel,(L+R)/2,H-3);c.textAlign='left';c.fillText(ylabel,5,10);
  c.save();c.beginPath();c.rect(L,T,R-L,B-T);c.clip();
  return {c,X,Y,L,R,T,B,finish:()=>c.restore()};
@@ -83,6 +83,39 @@ $('tail').oninput=()=>setTail($('tail').value);
 $('tailMs').oninput=()=>{if($('tailMs').value!==''&&$('tailMs').validity.valid)setTail($('tailMs').value);};
 $('tailMs').onchange=()=>setTail($('tailMs').value);
 $('export').onclick=()=>{const blob=new Blob(['time_ms,V_mV,w,I_uA_per_cm2\n'+samples.filter(s=>s[0]>=t-Number($('window').value)).map(s=>s.join(',')).join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='morris-lecar.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('snapshot').onclick=()=>{
+  const button=$('snapshot');button.disabled=true;
+  // Draw and copy all four plots synchronously so they represent one model time.
+  draw();const capturedTime=t;
+  const charts=[['phase','Phase plane · V (mV), w'],['voltage','Membrane voltage · V (mV)'],['gate','Potassium activation · w'],['current','Applied current · I (µA/cm²)']];
+  const width=1000,pad=24,plotWidth=width-2*pad,scale=2;
+  const heights=charts.map(([id])=>plotWidth*$(id).height/$(id).width);
+  const height=Math.ceil(176+heights.reduce((a,b)=>a+b,0)+charts.length*48+44);
+  const canvas=document.createElement('canvas');canvas.width=width*scale;canvas.height=height*scale;
+  const c=canvas.getContext('2d');c.scale(scale,scale);c.fillStyle='#f7f4ed';c.fillRect(0,0,width,height);
+  c.fillStyle='#202328';c.font='bold 27px system-ui';c.fillText('Morris–Lecar Simulator',pad,40);
+  c.font='15px system-ui';c.fillText(`Time: ${capturedTime.toFixed(1)} ms   ·   Trace window: ${Number($('window').value).toLocaleString()} ms   ·   Trajectory tail: ${$('tail').value} ms`,pad,68);
+  c.fillText(`I = ${p.I} µA/cm²   ·   gCa = ${p.gCa}, gK = ${p.gK}, gL = ${p.gL} mS/cm²   ·   φ = ${p.phi} ms⁻¹`,pad,93);
+  c.fillText(`C = ${p.C} µF/cm²   ·   ECa = ${p.ECa}, EK = ${p.EK}, EL = ${p.EL} mV`,pad,116);
+  c.fillText(`V₁ = ${p.v1}, V₂ = ${p.v2}, V₃ = ${p.v3}, V₄ = ${p.v4} mV   ·   Phase layers use the current I`,pad,139);
+  let top=162;
+  charts.forEach(([id,title],i)=>{
+    c.fillStyle='#202328';c.font='bold 18px system-ui';c.fillText(title,pad,top+22);top+=32;
+    c.fillStyle='#fffdf8';c.fillRect(pad,top,plotWidth,heights[i]);c.drawImage($(id),pad,top,plotWidth,heights[i]);top+=heights[i]+16;
+    if(id==='phase'){
+      const legends=[['Trajectory','#2557c7',true],['V nullcline','#d33838',$('nullclines').checked],['w nullcline','#1f7a4d',$('wnullcline').checked],['Stable manifold','#8051ad',!$('stableLegend').hidden],['Unstable manifold','#c4730e',!$('unstableLegend').hidden]];
+      let left=pad;c.font='14px system-ui';
+      for(const [label,color,visible] of legends){if(!visible)continue;c.fillStyle=color;c.fillText('━ '+label,left,top+3);left+=c.measureText('━ '+label).width+20;}
+      top+=28;
+    }
+  });
+  canvas.toBlob(blob=>{
+    button.disabled=false;
+    if(!blob){$('status').textContent='PNG could not be created. Please try again.';return;}
+    const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`morris-lecar-${capturedTime.toFixed(1)}ms.png`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    $('status').textContent=`PNG snapshot downloaded for t = ${capturedTime.toFixed(1)} ms.`;
+  },'image/png');
+};
 window.addEventListener('resize',draw);
 function frame(now){if(running){const elapsed=last===undefined?0:Math.min(now-last,80);const steps=playbackClock.steps(elapsed,Number($('speed').value));for(let i=0;i<steps;i++){y=ML.step(y,p);t+=.05;if(!y.every(Number.isFinite)||Math.abs(y[0])>500||y[1]<0||y[1]>1){running=false;$('play').textContent='Run';$('status').textContent='Integration stopped: restart the trajectory.';break;}if(i%4===0)samples.push([t,...y,p.I]);}samples=samples.filter(s=>s[0]>=t-10000);draw();}last=now;requestAnimationFrame(frame);}
 applyPreset();requestAnimationFrame(frame);
