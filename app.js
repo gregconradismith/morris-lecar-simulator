@@ -25,9 +25,9 @@ function line(a,points,color,width=2){const {c,X,Y}=a;c.strokeStyle=color;c.line
 function draw(){
  const duration=Number($('window').value),end=Math.max(duration,t),start=end-duration;
  for(const [id,index,min,max,label] of [['voltage',1,-80,60,'V'],['gate',2,0,1,'w']]){const a=axes(id,start,end,min,max,'Time (ms)',label);line(a,samples.map(s=>[s[0],s[index]]),'#2557c7');a.finish();}
- const zoom=$('phaseView').value==='onset',vmin=zoom?-65:-80,vmax=zoom?5:60,wmax=zoom?.15:1;
- const a=axes('phase',vmin,vmax,0,wmax,'V (mV)','w');
- if($('field').checked){for(let v=vmin+5;v<vmax;v+=(vmax-vmin)/14)for(let w=wmax/20;w<wmax;w+=wmax/10){const [dv,dw]=ML.rhs([v,w],p);let dx=dv*(a.R-a.L)/(vmax-vmin),dy=-dw*(a.B-a.T)/wmax,n=Math.hypot(dx,dy);if(n<1e-9)continue;dx=dx/n*7;dy=dy/n*7;const x=a.X(v),z=a.Y(w),c=a.c;c.strokeStyle='#b7b1a6';c.lineWidth=1;c.beginPath();c.moveTo(x-dx/2,z-dy/2);c.lineTo(x+dx/2,z+dy/2);c.lineTo(x+dx/2-.4*dx+.4*dy,z+dy/2-.4*dy-.4*dx);c.moveTo(x+dx/2,z+dy/2);c.lineTo(x+dx/2-.4*dx-.4*dy,z+dy/2-.4*dy+.4*dx);c.stroke();}}
+ const zoom=$('phaseView').value==='onset',vmin=zoom?-65:-80,vmax=zoom?5:60,wmin=zoom?0:-.2,wmax=zoom?.15:1.2;
+ const a=axes('phase',vmin,vmax,wmin,wmax,'V (mV)','w');
+ if($('field').checked){for(let v=vmin+5;v<vmax;v+=(vmax-vmin)/14)for(let w=wmin+(wmax-wmin)/20;w<wmax;w+=(wmax-wmin)/10){const [dv,dw]=ML.rhs([v,w],p);let dx=dv*(a.R-a.L)/(vmax-vmin),dy=-dw*(a.B-a.T)/(wmax-wmin),n=Math.hypot(dx,dy);if(n<1e-9)continue;dx=dx/n*7;dy=dy/n*7;const x=a.X(v),z=a.Y(w),c=a.c;c.strokeStyle='#b7b1a6';c.lineWidth=1;c.beginPath();c.moveTo(x-dx/2,z-dy/2);c.lineTo(x+dx/2,z+dy/2);c.lineTo(x+dx/2-.4*dx+.4*dy,z+dy/2-.4*dy-.4*dx);c.moveTo(x+dx/2,z+dy/2);c.lineTo(x+dx/2-.4*dx-.4*dy,z+dy/2-.4*dy+.4*dx);c.stroke();}}
  const vs=Array.from({length:701},(_,i)=>vmin+i*(vmax-vmin)/700);
  if($('nullclines').checked)line(a,vs.map(v=>[v,ML.vnull(v,p)]),'#d33838',2.5);
  if($('wnullcline').checked)line(a,vs.map(v=>[v,ML.winf(v,p)]),'#1f7a4d',2.5);
@@ -37,7 +37,7 @@ function draw(){
  if(tailMs>0)tail.push([...y]);
  line(a,tail,'#2557c7',2.5);a.c.beginPath();a.c.arc(a.X(y[0]),a.Y(y[1]),4,0,2*Math.PI);a.c.fillStyle='#2557c7';a.c.fill();a.c.strokeStyle='#fffdf8';a.c.lineWidth=1;a.c.stroke();a.finish();$('clock').textContent=`${t.toFixed(0)} ms`;
 }
-$('phase').addEventListener('pointerdown',e=>{const r=$('phase').getBoundingClientRect(),zoom=$('phaseView').value==='onset',lo=zoom?-65:-80,hi=zoom?5:60,top=zoom?.15:1,v=lo+(e.clientX-r.left-52)/(r.width-69)*(hi-lo),w=top*(1-(e.clientY-r.top-15)/(r.height-50));if(v>=lo&&v<=hi&&w>=0&&w<=top)restart([v,w]);});
+$('phase').addEventListener('pointerdown',e=>{const r=$('phase').getBoundingClientRect(),zoom=$('phaseView').value==='onset',lo=zoom?-65:-80,hi=zoom?5:60,bottom=zoom?0:-.2,top=zoom?.15:1.2,v=lo+(e.clientX-r.left-52)/(r.width-69)*(hi-lo),w=top-(top-bottom)*(e.clientY-r.top-15)/(r.height-50);if(v>=lo&&v<=hi&&w>=0&&w<=Math.min(1,top))restart([v,w]);});
 $('play').onclick=()=>{running=!running;$('play').textContent=running?'Pause':'Run';last=undefined;playbackClock.reset();$('status').textContent=running?'Running.':'Paused. Click the phase plane to choose an initial condition.';};
 $('restart').onclick=()=>restart();
 $('kick').onclick=()=>{y=[y[0]+15,y[1]];samples.push([t,...y]);draw();$('status').textContent='Voltage increased by 15 mV; w is unchanged.';};
