@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=__dirname;
 const elements=new Map();
-const defaults={preset:'spike',window:'500',speed:'1',phaseView:'full',tail:'100',tailMs:'100'};
+const defaults={preset:'spike',window:'500',speed:'.01',phaseView:'full',tail:'100',tailMs:'100'};
 function element(id){
   if(!elements.has(id))elements.set(id,{value:defaults[id]??'',checked:['nullclines','wnullcline','equilibria','field'].includes(id),hidden:false,textContent:'',handlers:{},validity:{valid:true},
     addEventListener(name,fn){this.handlers[name]=fn;},append(){},click(){},getBoundingClientRect(){return {width:1000,height:300,left:0,top:0};},
@@ -16,6 +16,18 @@ Object.assign(sandbox,sandbox.window);sandbox.window=sandbox;vm.createContext(sa
 for(const file of ['model.js','timing.js','app.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),sandbox);
 const evaluate=code=>vm.runInContext(code,sandbox);
 const state=()=>JSON.parse(evaluate('JSON.stringify({t,y,samples,I:p.I,running})'));
+assert.equal(element('speed').value,'.01');
+assert.equal(element('manifoldControls').hidden,true);
+element('preset').value='type1rest';element('preset').onchange();
+assert.equal(element('manifoldControls').hidden,false);
+element('stableManifold').checked=true;element('stableManifold').onchange();
+assert.equal(element('stableLegend').hidden,false);
+element('I').value='45';element('I').handlers.input();
+assert.equal(element('manifoldControls').hidden,true);assert.equal(element('stableLegend').hidden,true);
+element('tailMs').value='999';element('tailMs').onchange();assert.equal(element('tail').value,'500');
+element('tailMs').value='-1';element('tailMs').onchange();assert.equal(element('tail').value,'0');
+element('reset').onclick();assert.equal(element('speed').value,'.01');
+element('speed').value='1';
 evaluate('frame(0); for(let i=1;i<=100;i++)frame(i);');
 element('play').onclick();
 const before=state();assert(before.t>90);assert.equal(before.running,false);

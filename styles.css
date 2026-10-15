@@ -426,3 +426,6 @@ input[type="number"] { width:100%; min-height:38px; padding:7px 9px; border:1px 
   .app-shell { grid-template-columns:minmax(0,1fr); }
   .phase-controls,.side-panel,.play-area { grid-column:1; }
 }
+
+#manifoldControls { display:grid; gap:12px; }
+#manifoldControls[hidden] { display:none; }
