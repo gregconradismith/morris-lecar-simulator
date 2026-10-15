@@ -58,11 +58,12 @@ function draw(){
  if($('nullclines').checked)line(a,vs.map(v=>[v,ML.vnull(v,p)]),'#d33838',2.5);
  if($('wnullcline').checked)line(a,vs.map(v=>[v,ML.winf(v,p)]),'#1f7a4d',2.5);
  for(const branch of manifoldBranches){if(!$(branch.kind==='stable'?'stableManifold':'unstableManifold').checked)continue;a.c.setLineDash(branch.kind==='stable'?[7,4]:[3,3]);line(a,branch.points,branch.kind==='stable'?'#8051ad':'#c4730e',2);a.c.setLineDash([]);}
- if($('equilibria').checked)for(const r of fixedPoints){const c=a.c,x=a.X(r.v),z=a.Y(r.w);c.beginPath();if(r.kind==='saddle'){c.moveTo(x,z-6);c.lineTo(x+6,z);c.lineTo(x,z+6);c.lineTo(x-6,z);c.closePath();}else c.arc(x,z,5,0,2*Math.PI);c.fillStyle=r.kind==='unstable'?'#fffdf8':'#202328';c.fill();c.strokeStyle='#202328';c.lineWidth=1.5;c.stroke();}
  const tailMs=Number($('tail').value);
  const tail=tailMs>0?samples.filter(s=>s[0]>=t-tailMs).map(s=>[s[1],s[2]]):[];
  if(tailMs>0)tail.push([...y]);
- line(a,tail,'#2557c7',2.5);a.c.beginPath();a.c.arc(a.X(y[0]),a.Y(y[1]),4,0,2*Math.PI);a.c.fillStyle='#2557c7';a.c.fill();a.c.strokeStyle='#fffdf8';a.c.lineWidth=1;a.c.stroke();a.finish();$('clock').textContent=`${t.toFixed(0)} ms`;
+ line(a,tail,'#2557c7',2.5);a.c.beginPath();a.c.arc(a.X(y[0]),a.Y(y[1]),4,0,2*Math.PI);a.c.fillStyle='#2557c7';a.c.fill();a.c.strokeStyle='#fffdf8';a.c.lineWidth=1;a.c.stroke();
+ if($('equilibria').checked)for(const r of fixedPoints){const c=a.c,x=a.X(r.v),z=a.Y(r.w);c.beginPath();if(r.kind==='saddle'){c.moveTo(x,z-6);c.lineTo(x+6,z);c.lineTo(x,z+6);c.lineTo(x-6,z);c.closePath();}else c.arc(x,z,5,0,2*Math.PI);c.fillStyle=r.kind==='stable'?'#202328':'#fffdf8';c.fill();c.strokeStyle='#202328';c.lineWidth=1.5;c.stroke();}
+ a.finish();$('clock').textContent=`${t.toFixed(0)} ms`;
 }
 $('phase').addEventListener('pointerdown',e=>{const r=$('phase').getBoundingClientRect(),zoom=$('phaseView').value==='onset',lo=zoom?-65:-80,hi=zoom?5:60,bottom=zoom?0:-.2,top=zoom?.15:1.2,v=lo+(e.clientX-r.left-52)/(r.width-69)*(hi-lo),w=top-(top-bottom)*(e.clientY-r.top-15)/(r.height-50);if(v>=lo&&v<=hi&&w>=0&&w<=Math.min(1,top))restart([v,w]);});
 $('play').onclick=()=>{running=!running;$('play').textContent=running?'Pause':'Run';last=undefined;playbackClock.reset();$('status').textContent=running?'Running.':'Paused. Click the phase plane to choose an initial condition.';};
