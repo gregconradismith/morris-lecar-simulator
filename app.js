@@ -32,7 +32,10 @@ function draw(){
  if($('nullclines').checked)line(a,vs.map(v=>[v,ML.vnull(v,p)]),'#d33838',2.5);
  if($('wnullcline').checked)line(a,vs.map(v=>[v,ML.winf(v,p)]),'#1f7a4d',2.5);
  if($('equilibria').checked)for(const r of fixedPoints){const c=a.c,x=a.X(r.v),z=a.Y(r.w);c.beginPath();if(r.kind==='saddle'){c.moveTo(x,z-6);c.lineTo(x+6,z);c.lineTo(x,z+6);c.lineTo(x-6,z);c.closePath();}else c.arc(x,z,5,0,2*Math.PI);c.fillStyle=r.kind==='unstable'?'#fffdf8':'#202328';c.fill();c.strokeStyle='#202328';c.lineWidth=1.5;c.stroke();}
- line(a,samples.map(s=>[s[1],s[2]]),'#2557c7',2.5);a.c.beginPath();a.c.arc(a.X(y[0]),a.Y(y[1]),4,0,2*Math.PI);a.c.fillStyle='#2557c7';a.c.fill();a.c.strokeStyle='#fffdf8';a.c.lineWidth=1;a.c.stroke();a.finish();$('clock').textContent=`${t.toFixed(0)} ms`;
+ const tailMs=Number($('tail').value);
+ const tail=tailMs>0?samples.filter(s=>s[0]>=t-tailMs).map(s=>[s[1],s[2]]):[];
+ if(tailMs>0)tail.push([...y]);
+ line(a,tail,'#2557c7',2.5);a.c.beginPath();a.c.arc(a.X(y[0]),a.Y(y[1]),4,0,2*Math.PI);a.c.fillStyle='#2557c7';a.c.fill();a.c.strokeStyle='#fffdf8';a.c.lineWidth=1;a.c.stroke();a.finish();$('clock').textContent=`${t.toFixed(0)} ms`;
 }
 $('phase').addEventListener('pointerdown',e=>{const r=$('phase').getBoundingClientRect(),zoom=$('phaseView').value==='onset',lo=zoom?-65:-80,hi=zoom?5:60,top=zoom?.15:1,v=lo+(e.clientX-r.left-52)/(r.width-69)*(hi-lo),w=top*(1-(e.clientY-r.top-15)/(r.height-50));if(v>=lo&&v<=hi&&w>=0&&w<=top)restart([v,w]);});
 $('play').onclick=()=>{running=!running;$('play').textContent=running?'Pause':'Run';last=undefined;playbackClock.reset();$('status').textContent=running?'Running.':'Paused. Click the phase plane to choose an initial condition.';};
@@ -47,8 +50,12 @@ function applyPreset(){
  sync();restart();
 }
 $('preset').onchange=applyPreset;
-$('reset').onclick=()=>{$('preset').value='spike';$('speed').value='1';$('phaseView').value='full';$('field').checked=true;applyPreset();};
+$('reset').onclick=()=>{$('preset').value='spike';$('speed').value='1';$('phaseView').value='full';$('field').checked=true;setTail(100);applyPreset();};
 for(const id of ['nullclines','wnullcline','equilibria','field','phaseView','window'])$(id).onchange=draw;
+function setTail(value){const n=Number(value);if(!Number.isFinite(n))return;const ms=Math.max(0,Math.min(2000,Math.round(n)));$('tail').value=$('tailMs').value=String(ms);$('tailValue').textContent=`${ms} ms`;draw();}
+$('tail').oninput=()=>setTail($('tail').value);
+$('tailMs').oninput=()=>{if($('tailMs').value!==''&&$('tailMs').validity.valid)setTail($('tailMs').value);};
+$('tailMs').onchange=()=>setTail($('tailMs').value);
 $('export').onclick=()=>{const blob=new Blob(['time_ms,V_mV,w,I_uA_per_cm2\n'+samples.filter(s=>s[0]>=t-Number($('window').value)).map(s=>[...s,p.I].join(',')).join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='morris-lecar.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 window.addEventListener('resize',draw);
 function frame(now){if(running){const elapsed=last===undefined?0:Math.min(now-last,80);const steps=playbackClock.steps(elapsed,Number($('speed').value));for(let i=0;i<steps;i++){y=ML.step(y,p);t+=.05;if(!y.every(Number.isFinite)||Math.abs(y[0])>500||y[1]<0||y[1]>1){running=false;$('play').textContent='Run';$('status').textContent='Integration stopped: restart the trajectory.';break;}if(i%4===0)samples.push([t,...y]);}samples=samples.filter(s=>s[0]>=t-2000);draw();}last=now;requestAnimationFrame(frame);}
