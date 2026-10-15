@@ -7,7 +7,15 @@ for(const [key,label,unit,min,max,step] of controls){
   const row=document.createElement('div');
   row.innerHTML=`<label class="slider-label" for="${key}"><span>${label}</span><output id="${key}Value"></output></label><input type="range" id="${key}" min="${min}" max="${max}" step="${step}"><small>${unit}</small>`;
   $('sliders').append(row);
-  $(key).addEventListener('input',()=>{p[key]=Number($(key).value);$('regimeNote').textContent='Custom parameters. The selected example describes the starting set; edits can change its excitability class.';sync();restart();});
+  $(key).addEventListener('input',()=>{
+    const value=Number($(key).value);
+    if(key==='I'&&value!==p.I){samples.push([t,...y,p.I],[t,...y,value]);}
+    p[key]=value;
+    $('regimeNote').textContent='Custom parameters. The selected example describes the starting set; edits can change its excitability class.';
+    sync();
+    if(key==='I'){$('status').textContent=`Applied current changed to ${p.I} µA/cm² at ${t.toFixed(1)} ms. State and history preserved.`;draw();}
+    else restart();
+  });
 }
 function sync(){fixedPoints=ML.equilibria(p);updateManifolds();for(const [key] of controls){$(key).value=p[key];$(key+'Value').textContent=String(p[key]);}}
 function updateManifolds(){
@@ -18,7 +26,7 @@ function updateManifolds(){
  $('stableLegend').hidden=!$('stableManifold').checked||!saddles;
  $('unstableLegend').hidden=!$('unstableManifold').checked||!saddles;
 }
-function restart(initial=[-60,ML.winf(-60,p)]){playbackClock.reset();y=initial;t=0;samples=[[t,...y]];last=undefined;$('status').textContent=running?'Running. Parameter changes restart the trajectory.':'Paused. Choose an initial condition or press Run.';draw();}
+function restart(initial=[-60,ML.winf(-60,p)]){playbackClock.reset();y=initial;t=0;samples=[[t,...y,p.I]];last=undefined;$('status').textContent=running?'Running. Applied-current changes continue; other model parameter changes restart.':'Paused. Choose an initial condition or press Run.';draw();}
 function axes(id,xmin,xmax,ymin,ymax,xlabel,ylabel){
  const canvas=$(id),dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
  const c=canvas.getContext('2d');c.scale(dpr,dpr);const W=rect.width,H=rect.height,L=52,R=W-17,T=15,B=H-35;
@@ -33,6 +41,14 @@ function line(a,points,color,width=2){const {c,X,Y}=a;c.strokeStyle=color;c.line
 function draw(){
  const duration=Number($('window').value),end=Math.max(duration,t),start=end-duration;
  for(const [id,index,min,max,label] of [['voltage',1,-80,60,'V'],['gate',2,0,1,'w']]){const a=axes(id,start,end,min,max,'Time (ms)',label);line(a,samples.map(s=>[s[0],s[index]]),'#2557c7');a.finish();}
+ const currentAxes=axes('current',start,end,0,400,'Time (ms)','I');
+ const currentPoints=[];
+ for(let i=0;i<samples.length;i++){
+   const s=samples[i];
+   if(i>0)currentPoints.push([s[0],samples[i-1][3]]);
+   currentPoints.push([s[0],s[3]]);
+ }
+ currentPoints.push([t,p.I]);line(currentAxes,currentPoints,'#9a671d');currentAxes.finish();
  const zoom=$('phaseView').value==='onset',vmin=zoom?-65:-80,vmax=zoom?5:60,wmin=zoom?0:-.2,wmax=zoom?.15:1.2;
  const a=axes('phase',vmin,vmax,wmin,wmax,'V (mV)','w');
  if($('field').checked){for(let v=vmin+5;v<vmax;v+=(vmax-vmin)/14)for(let w=wmin+(wmax-wmin)/20;w<wmax;w+=(wmax-wmin)/10){const [dv,dw]=ML.rhs([v,w],p);let dx=dv*(a.R-a.L)/(vmax-vmin),dy=-dw*(a.B-a.T)/(wmax-wmin),n=Math.hypot(dx,dy);if(n<1e-9)continue;dx=dx/n*7;dy=dy/n*7;const x=a.X(v),z=a.Y(w),c=a.c;c.strokeStyle='#b7b1a6';c.lineWidth=1;c.beginPath();c.moveTo(x-dx/2,z-dy/2);c.lineTo(x+dx/2,z+dy/2);c.lineTo(x+dx/2-.4*dx+.4*dy,z+dy/2-.4*dy-.4*dx);c.moveTo(x+dx/2,z+dy/2);c.lineTo(x+dx/2-.4*dx-.4*dy,z+dy/2-.4*dy+.4*dx);c.stroke();}}
@@ -49,7 +65,7 @@ function draw(){
 $('phase').addEventListener('pointerdown',e=>{const r=$('phase').getBoundingClientRect(),zoom=$('phaseView').value==='onset',lo=zoom?-65:-80,hi=zoom?5:60,bottom=zoom?0:-.2,top=zoom?.15:1.2,v=lo+(e.clientX-r.left-52)/(r.width-69)*(hi-lo),w=top-(top-bottom)*(e.clientY-r.top-15)/(r.height-50);if(v>=lo&&v<=hi&&w>=0&&w<=Math.min(1,top))restart([v,w]);});
 $('play').onclick=()=>{running=!running;$('play').textContent=running?'Pause':'Run';last=undefined;playbackClock.reset();$('status').textContent=running?'Running.':'Paused. Click the phase plane to choose an initial condition.';};
 $('restart').onclick=()=>restart();
-$('kick').onclick=()=>{y=[y[0]+15,y[1]];samples.push([t,...y]);draw();$('status').textContent='Voltage increased by 15 mV; w is unchanged.';};
+$('kick').onclick=()=>{y=[y[0]+15,y[1]];samples.push([t,...y,p.I]);draw();$('status').textContent='Voltage increased by 15 mV; w is unchanged.';};
 function applyPreset(){
  const key=$('preset').value;p={...ML.presets[key]};
  const type1=key.startsWith('type1');
@@ -66,8 +82,8 @@ for(const id of ['stableManifold','unstableManifold'])$(id).onchange=()=>{update
 $('tail').oninput=()=>setTail($('tail').value);
 $('tailMs').oninput=()=>{if($('tailMs').value!==''&&$('tailMs').validity.valid)setTail($('tailMs').value);};
 $('tailMs').onchange=()=>setTail($('tailMs').value);
-$('export').onclick=()=>{const blob=new Blob(['time_ms,V_mV,w,I_uA_per_cm2\n'+samples.filter(s=>s[0]>=t-Number($('window').value)).map(s=>[...s,p.I].join(',')).join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='morris-lecar.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('export').onclick=()=>{const blob=new Blob(['time_ms,V_mV,w,I_uA_per_cm2\n'+samples.filter(s=>s[0]>=t-Number($('window').value)).map(s=>s.join(',')).join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='morris-lecar.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 window.addEventListener('resize',draw);
-function frame(now){if(running){const elapsed=last===undefined?0:Math.min(now-last,80);const steps=playbackClock.steps(elapsed,Number($('speed').value));for(let i=0;i<steps;i++){y=ML.step(y,p);t+=.05;if(!y.every(Number.isFinite)||Math.abs(y[0])>500||y[1]<0||y[1]>1){running=false;$('play').textContent='Run';$('status').textContent='Integration stopped: restart the trajectory.';break;}if(i%4===0)samples.push([t,...y]);}samples=samples.filter(s=>s[0]>=t-10000);draw();}last=now;requestAnimationFrame(frame);}
+function frame(now){if(running){const elapsed=last===undefined?0:Math.min(now-last,80);const steps=playbackClock.steps(elapsed,Number($('speed').value));for(let i=0;i<steps;i++){y=ML.step(y,p);t+=.05;if(!y.every(Number.isFinite)||Math.abs(y[0])>500||y[1]<0||y[1]>1){running=false;$('play').textContent='Run';$('status').textContent='Integration stopped: restart the trajectory.';break;}if(i%4===0)samples.push([t,...y,p.I]);}samples=samples.filter(s=>s[0]>=t-10000);draw();}last=now;requestAnimationFrame(frame);}
 applyPreset();requestAnimationFrame(frame);
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./service-worker.js').catch(()=>{});

@@ -403,3 +403,5 @@ input[type="number"] { width:100%; min-height:38px; padding:7px 9px; border:1px 
 
 .manifold-stable { color:#8051ad; }
 .manifold-unstable { color:#c4730e; }
+
+.plots #current { height:140px; }
