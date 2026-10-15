@@ -43,7 +43,7 @@ function applyPreset(){
  const type1=key.startsWith('type1');
  $('window').value=type1?'2000':'500';
  $('nullclines').checked=$('wnullcline').checked=$('equilibria').checked=true;
- $('regimeNote').textContent=type1?'Type I (SNIC): frequency approaches zero at onset near I ≈ 39.96. Compare I = 40, 40.1, 41, and 45. A slow passage through the phase-plane bottleneck sets the long period.':'Type II (Hopf regime): onset has finite frequency. Compare I = 88 and 90 from the default initial state. Near onset, rest and firing can coexist, so initial conditions matter.';
+ $('regimeNote').textContent=type1?'Type I (SNIC): frequency approaches zero at onset near I ≈ 39.96 µA/cm². Compare I = 40, 40.1, 41, and 45 µA/cm². A slow passage through the phase-plane bottleneck sets the long period.':'Type II (Hopf regime): onset has finite frequency. Compare I = 88 and 90 µA/cm² from the default initial state. Near onset, rest and firing can coexist, so initial conditions matter.';
  sync();restart();
 }
 $('preset').onchange=applyPreset;
