@@ -413,3 +413,16 @@ input[type="number"] { width:100%; min-height:38px; padding:7px 9px; border:1px 
 .reading li+li { margin-top:8px; }
 .reading a { color:#2557c7; text-underline-offset:3px; }
 .reading a:hover { color:#173a88; }
+
+/* Controls flank the plots; teaching material follows across the full width. */
+.app-shell { grid-template-columns:270px minmax(0,1fr) 290px; }
+.full-width { grid-column:1 / -1; }
+.phase-controls { min-width:0; }
+@media(max-width:1150px) {
+  .app-shell { grid-template-columns:250px minmax(0,1fr); }
+  .side-panel { grid-column:1 / -1; }
+}
+@media(max-width:700px) {
+  .app-shell { grid-template-columns:minmax(0,1fr); }
+  .phase-controls,.side-panel,.play-area { grid-column:1; }
+}
