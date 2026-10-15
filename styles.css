@@ -429,3 +429,18 @@ input[type="number"] { width:100%; min-height:38px; padding:7px 9px; border:1px 
 
 #manifoldControls { display:grid; gap:12px; }
 #manifoldControls[hidden] { display:none; }
+
+.model-notes { display:block; }
+.model-content { padding-top:16px; }
+.model-content h3 { margin:22px 0 10px; font-size:1rem; }
+.model-content p { font-size:.95rem; line-height:1.7; margin:12px 0; overflow-wrap:normal; }
+.model-content math { font-size:1.12em; }
+.equation { overflow-x:auto; padding:16px 12px; margin:12px 0; background:#f7f4ed; border-radius:6px; }
+.equation math { font-size:1.2rem; min-width:max-content; }
+.activation-equations { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.parameter-table { overflow-x:auto; }
+.parameter-table table { width:100%; border-collapse:collapse; font-size:.9rem; }
+.parameter-table th,.parameter-table td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); }
+.parameter-table thead { background:#f7f4ed; }
+.parameter-table .math-symbol { font-family:"STIX Two Math","Cambria Math",serif; font-size:1.05rem; font-weight:400; white-space:nowrap; }
+@media(max-width:700px) { .activation-equations { grid-template-columns:1fr; gap:0; } }
