@@ -26,7 +26,7 @@ The phase plane is shown first, with independent V and w nullcline switches, nor
 | V3 (mV) | 12 | 2 |
 | V4 (mV) | 17.4 | 30 |
 | φ (ms⁻¹) | 0.067 | 0.04 |
-| Current examples (µA/cm²) | 39, 40, 45 | 88, 90, 100 |
+| Current examples (µA/cm²) | 39, 40, 45 | 88, 90, 100, 250 (block) |
 
 Other parameters retain their defaults. These conventional sets are also listed in the [published model description](https://repository.essex.ac.uk/35643/1/s41598-023-34807-3.pdf); this app uses ordinary first-order time derivatives.
 
@@ -41,3 +41,5 @@ The phase-plane trajectory tail has its own duration control: 0–2,000 ms of mo
 Trace windows: 50, 100, 250, 500, 1,000, 2,000, 5,000, and 10,000 ms. The simulator retains 10,000 ms of history, so enlarging the window reveals available prior data without restarting. CSV uses the selected trace window. At startup or after restart, the window fills as model time advances.
 
 The full phase-plane view displays w from −0.2 to 1.2. The extra margin is visual: initial conditions chosen by clicking remain restricted to the physical gating interval 0–1. Near-rest zoom retains its focused 0–0.15 range.
+
+Type II also includes a depolarization-block preset at I = 250 µA/cm². With the standard Type II parameters, initial spikes decay and the state approaches a stable equilibrium at V ≈ +10.90 mV, w ≈ 0.6441. Compare with sustained firing at I = 100 or 200 µA/cm². Applied-current control extends to 400 µA/cm². This is block in the reduced calcium/potassium model; it does not model sodium-channel inactivation.

@@ -10,7 +10,8 @@
     type1firing: {...defaults, gCa:4, v3:12, v4:17.4, phi:0.067, I:45},
     type2rest: {...defaults, I:88},
     spike: {...defaults, I:90},
-    fast: {...defaults, I:100}
+    fast: {...defaults, I:100},
+    type2block: {...defaults, I:250}
   };
   // Bracket roots of the steady-state current balance and classify the local Jacobian.
   function equilibria(p) {

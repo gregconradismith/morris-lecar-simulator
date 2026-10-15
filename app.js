@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const playbackClock=new PlaybackClock();
 let p={...ML.defaults}, y, t, samples, running=true, last, fixedPoints=[];
-const controls=[['I','Applied current','µA/cm²',0,200,.1],['gCa','Calcium conductance','mS/cm²',1,8,.1],['gK','Potassium conductance','mS/cm²',1,16,.1],['gL','Leak conductance','mS/cm²',.5,5,.1],['phi','Potassium rate φ','ms⁻¹',.01,.1,.001],['v3','Potassium half activation V₃','mV',-10,20,.1],['v4','Potassium slope V₄','mV',10,40,.1]];
+const controls=[['I','Applied current','µA/cm²',0,400,.1],['gCa','Calcium conductance','mS/cm²',1,8,.1],['gK','Potassium conductance','mS/cm²',1,16,.1],['gL','Leak conductance','mS/cm²',.5,5,.1],['phi','Potassium rate φ','ms⁻¹',.01,.1,.001],['v3','Potassium half activation V₃','mV',-10,20,.1],['v4','Potassium slope V₄','mV',10,40,.1]];
 for(const [key,label,unit,min,max,step] of controls){
   const row=document.createElement('div');
   row.innerHTML=`<label class="slider-label" for="${key}"><span>${label}</span><output id="${key}Value"></output></label><input type="range" id="${key}" min="${min}" max="${max}" step="${step}"><small>${unit}</small>`;
@@ -46,7 +46,7 @@ function applyPreset(){
  const type1=key.startsWith('type1');
  $('window').value=type1?'2000':'500';
  $('nullclines').checked=$('wnullcline').checked=$('equilibria').checked=true;
- $('regimeNote').textContent=type1?'Type I (SNIC): frequency approaches zero at onset near I ≈ 39.96 µA/cm². Compare I = 40, 40.1, 41, and 45 µA/cm². A slow passage through the phase-plane bottleneck sets the long period.':'Type II (Hopf regime): onset has finite frequency. Compare I = 88 and 90 µA/cm² from the default initial state. Near onset, rest and firing can coexist, so initial conditions matter.';
+ $('regimeNote').textContent=key==='type2block'?'Type II depolarization block: at I = 250 µA/cm², initial spiking dies out and the voltage settles near +10.9 mV. Compare with sustained firing at I = 100 or 200 µA/cm². Strong drive holds the model at a depolarized stable equilibrium.':type1?'Type I (SNIC): frequency approaches zero at onset near I ≈ 39.96 µA/cm². Compare I = 40, 40.1, 41, and 45 µA/cm². A slow passage through the phase-plane bottleneck sets the long period.':'Type II (Hopf regime): onset has finite frequency. Compare I = 88 and 90 µA/cm² from the default initial state. Near onset, rest and firing can coexist, so initial conditions matter.';
  sync();restart();
 }
 $('preset').onchange=applyPreset;
