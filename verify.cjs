@@ -37,3 +37,21 @@ assert(blockHi-blockLo<1e-6);assert(blocked[0]>10&&blocked[0]<12);
 assert(M.rhs(blocked,blockParams).every(x=>Math.abs(x)<1e-8));
 assert(M.equilibria(blockParams).some(r=>r.kind==='stable'&&Math.abs(r.v-blocked[0])<1e-6));
 console.log('PASS: Type II depolarization block settles at a stable depolarized equilibrium.',blocked);
+
+const saddleParams=M.presets.type1rest,saddle=M.equilibria(saddleParams).find(r=>r.kind==='saddle');
+const manifolds=M.saddleManifolds(saddleParams);
+assert.equal(manifolds.length,4);assert.equal(M.saddleManifolds(M.presets.spike).length,0);
+assert.equal(M.saddleManifolds(M.presets.type1onset).length,0);
+const distance=y=>Math.hypot((y[0]-saddle.v)/140,(y[1]-saddle.w)/1.4);
+for(const b of manifolds){
+  assert.equal(b.kind==='stable',b.lambda<0);
+  let y=b.points[1],initialDistance=distance(y);
+  for(let i=0;i<200;i++)y=M.step(y,saddleParams);
+  if(b.kind==='stable')assert(distance(y)<.5*initialDistance);
+  else assert(distance(y)>1.4*initialDistance);
+  for(const point of b.points)assert(point.every(Number.isFinite));
+}
+function section(points,v){for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];if((a[0]-v)*(b[0]-v)<=0&&a[0]!==b[0])return a[1]+(b[1]-a[1])*(v-a[0])/(b[0]-a[0]);}throw new Error('Manifold did not reach section');}
+const refined=M.saddleManifolds(saddleParams,undefined,{dt:.025});
+for(let i=0;i<4;i++){const v=saddle.v+Math.sign(manifolds[i].points[1][0]-saddle.v);assert(Math.abs(section(manifolds[i].points,v)-section(refined[i].points,v))<1e-5);}
+console.log('PASS: both saddle branches, forward-time attraction/repulsion, no-saddle cases, and manifold section convergence.');

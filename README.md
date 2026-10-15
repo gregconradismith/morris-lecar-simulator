@@ -43,3 +43,11 @@ Trace windows: 50, 100, 250, 500, 1,000, 2,000, 5,000, and 10,000 ms. The simula
 The full phase-plane view displays w from −0.2 to 1.2. The extra margin is visual: initial conditions chosen by clicking remain restricted to the physical gating interval 0–1. Near-rest zoom retains its focused 0–0.15 range.
 
 Type II also includes a depolarization-block preset at I = 250 µA/cm². With the standard Type II parameters, initial spikes decay and the state approaches a stable equilibrium at V ≈ +10.90 mV, w ≈ 0.6441. Compare with sustained firing at I = 100 or 200 µA/cm². Applied-current control extends to 400 µA/cm². This is block in the reduced calcium/potassium model; it does not model sodium-channel inactivation.
+
+## Saddle manifolds
+
+Enable **Stable saddle manifold** and/or **Unstable saddle manifold** under Phase-plane layers. Choose Type I below onset (I = 39 µA/cm²) to see a saddle and both branches of each manifold. Purple long dashes show the stable manifold; orange short dashes show the unstable manifold. The stable manifold approaches the saddle in forward time and locally separates trajectories; unstable branches leave it. The layer note reports when no saddle is detected (including the Type I firing presets). Layers follow the actual model equilibria, even after custom parameter edits.
+
+Curves are numerical approximations. The Jacobian is evaluated by centered differences (1e-4 in each variable); its real positive and negative eigenvectors provide seeds on both sides of the saddle, offset by 1e-5 in coordinates scaled by the full plot spans. Stable branches use backward RK4 and unstable branches use forward RK4, with |Δt| = 0.05 ms. Each branch runs at most 2,000 ms, stopping at a full-view boundary, near an equilibrium, or on a nonfinite step. The near-rest view clips these same curves. Near a nonhyperbolic bifurcation, root detection and finite tracing time can miss or incompletely resolve a manifold. These are guides to phase-plane geometry, not exact global separatrices. Computation is cached between parameter/layer changes; the trajectory tail does not trim manifold curves.
+
+Verification checks both eigenvector branches for forward attraction or repulsion, empty layers without a saddle, and convergence of a transverse-section intersection after halving the integration step.

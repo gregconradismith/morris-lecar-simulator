@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const playbackClock=new PlaybackClock();
-let p={...ML.defaults}, y, t, samples, running=true, last, fixedPoints=[];
+let p={...ML.defaults}, y, t, samples, running=true, last, fixedPoints=[],manifoldBranches=[];
 const controls=[['I','Applied current','µA/cm²',0,400,.1],['gCa','Calcium conductance','mS/cm²',1,8,.1],['gK','Potassium conductance','mS/cm²',1,16,.1],['gL','Leak conductance','mS/cm²',.5,5,.1],['phi','Potassium rate φ','ms⁻¹',.01,.1,.001],['v3','Potassium half activation V₃','mV',-10,20,.1],['v4','Potassium slope V₄','mV',10,40,.1]];
 for(const [key,label,unit,min,max,step] of controls){
   const row=document.createElement('div');
@@ -9,7 +9,15 @@ for(const [key,label,unit,min,max,step] of controls){
   $('sliders').append(row);
   $(key).addEventListener('input',()=>{p[key]=Number($(key).value);$('regimeNote').textContent='Custom parameters. The selected example describes the starting set; edits can change its excitability class.';sync();restart();});
 }
-function sync(){fixedPoints=ML.equilibria(p);for(const [key] of controls){$(key).value=p[key];$(key+'Value').textContent=String(p[key]);}}
+function sync(){fixedPoints=ML.equilibria(p);updateManifolds();for(const [key] of controls){$(key).value=p[key];$(key+'Value').textContent=String(p[key]);}}
+function updateManifolds(){
+ const enabled=$('stableManifold').checked||$('unstableManifold').checked;
+ manifoldBranches=enabled?ML.saddleManifolds(p,fixedPoints):[];
+ const saddles=fixedPoints.filter(r=>r.kind==='saddle').length;
+ $('manifoldNote').textContent=saddles?`${saddles} saddle detected. Stable (purple): approaches saddle forward in time. Unstable (orange): leaves saddle forward in time. Numerical branches traced for up to 2,000 ms; clipped to the view.`:'No saddle detected for these parameters in V = −80 to 60 mV. Try Type I below onset at I = 39 µA/cm².';
+ $('stableLegend').hidden=!$('stableManifold').checked||!saddles;
+ $('unstableLegend').hidden=!$('unstableManifold').checked||!saddles;
+}
 function restart(initial=[-60,ML.winf(-60,p)]){playbackClock.reset();y=initial;t=0;samples=[[t,...y]];last=undefined;$('status').textContent=running?'Running. Parameter changes restart the trajectory.':'Paused. Choose an initial condition or press Run.';draw();}
 function axes(id,xmin,xmax,ymin,ymax,xlabel,ylabel){
  const canvas=$(id),dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
@@ -31,6 +39,7 @@ function draw(){
  const vs=Array.from({length:701},(_,i)=>vmin+i*(vmax-vmin)/700);
  if($('nullclines').checked)line(a,vs.map(v=>[v,ML.vnull(v,p)]),'#d33838',2.5);
  if($('wnullcline').checked)line(a,vs.map(v=>[v,ML.winf(v,p)]),'#1f7a4d',2.5);
+ for(const branch of manifoldBranches){if(!$(branch.kind==='stable'?'stableManifold':'unstableManifold').checked)continue;a.c.setLineDash(branch.kind==='stable'?[7,4]:[3,3]);line(a,branch.points,branch.kind==='stable'?'#8051ad':'#c4730e',2);a.c.setLineDash([]);}
  if($('equilibria').checked)for(const r of fixedPoints){const c=a.c,x=a.X(r.v),z=a.Y(r.w);c.beginPath();if(r.kind==='saddle'){c.moveTo(x,z-6);c.lineTo(x+6,z);c.lineTo(x,z+6);c.lineTo(x-6,z);c.closePath();}else c.arc(x,z,5,0,2*Math.PI);c.fillStyle=r.kind==='unstable'?'#fffdf8':'#202328';c.fill();c.strokeStyle='#202328';c.lineWidth=1.5;c.stroke();}
  const tailMs=Number($('tail').value);
  const tail=tailMs>0?samples.filter(s=>s[0]>=t-tailMs).map(s=>[s[1],s[2]]):[];
@@ -50,9 +59,10 @@ function applyPreset(){
  sync();restart();
 }
 $('preset').onchange=applyPreset;
-$('reset').onclick=()=>{$('preset').value='spike';$('speed').value='1';$('phaseView').value='full';$('field').checked=true;setTail(100);applyPreset();};
+$('reset').onclick=()=>{$('preset').value='spike';$('speed').value='1';$('phaseView').value='full';$('field').checked=true;$('stableManifold').checked=$('unstableManifold').checked=false;setTail(100);applyPreset();};
 for(const id of ['nullclines','wnullcline','equilibria','field','phaseView','window'])$(id).onchange=draw;
 function setTail(value){const n=Number(value);if(!Number.isFinite(n))return;const ms=Math.max(0,Math.min(2000,Math.round(n)));$('tail').value=$('tailMs').value=String(ms);$('tailValue').textContent=`${ms} ms`;draw();}
+for(const id of ['stableManifold','unstableManifold'])$(id).onchange=()=>{updateManifolds();draw();};
 $('tail').oninput=()=>setTail($('tail').value);
 $('tailMs').oninput=()=>{if($('tailMs').value!==''&&$('tailMs').validity.valid)setTail($('tailMs').value);};
 $('tailMs').onchange=()=>setTail($('tailMs').value);

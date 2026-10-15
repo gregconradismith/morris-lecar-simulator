@@ -20,10 +20,9 @@
       let a=left,b=left+0.1;
       if(balance(a)*balance(b)>0)continue;
       for(let i=0;i<40;i++){const m=(a+b)/2;if(balance(a)*balance(m)<=0)b=m;else a=m;}
-      const v=(a+b)/2,w=winf(v,p),e=1e-4;
+      const v=(a+b)/2,w=winf(v,p);
       if(roots.some(r=>Math.abs(r.v-v)<1e-3))continue;
-      const va=rhs([v+e,w],p),vb=rhs([v-e,w],p),wa=rhs([v,w+e],p),wb=rhs([v,w-e],p);
-      const A=(va[0]-vb[0])/(2*e),B=(wa[0]-wb[0])/(2*e),D=(wa[1]-wb[1])/(2*e),E=(va[1]-vb[1])/(2*e);
+      const [[A,B],[E,D]]=jacobian([v,w],p);
       const tr=A+D,det=A*D-B*E;
       roots.push({v,w,kind:det<0?'saddle':tr<0?'stable':'unstable'});
     }
@@ -40,8 +39,53 @@
     const a=rhs(y,p,I), b=rhs(add(y,a,h/2),p,I), c=rhs(add(y,b,h/2),p,I), d=rhs(add(y,c,h),p,I);
     return y.map((x,i)=>x+h*(a[i]+2*b[i]+2*c[i]+d[i])/6);
   }
+  function jacobian([v,w],p) {
+    const e=1e-4,va=rhs([v+e,w],p),vb=rhs([v-e,w],p),wa=rhs([v,w+e],p),wb=rhs([v,w-e],p);
+    return [[(va[0]-vb[0])/(2*e),(wa[0]-wb[0])/(2*e)],
+      [(va[1]-vb[1])/(2*e),(wa[1]-wb[1])/(2*e)]];
+  }
+  // Stable branches are traced backward; unstable branches are traced forward.
+  // Seeds lie 1e-5 full-plot units from each saddle along its eigenvectors.
+  function saddleManifolds(p,roots=equilibria(p),options={}) {
+    const dt=options.dt??0.05,maxTime=options.maxTime??2000,seed=options.seed??1e-5;
+    const branches=[];
+    for(const root of roots.filter(r=>r.kind==='saddle')) {
+      const [[A,B],[E,D]]=jacobian([root.v,root.w],p),tr=A+D,det=A*D-B*E;
+      const disc=Math.sqrt(tr*tr-4*det);
+      for(const [kind,lambda,signTime] of [['stable',(tr-disc)/2,-1],['unstable',(tr+disc)/2,1]]) {
+        let vector=[B,lambda-A];
+        if(Math.hypot(...vector)<1e-12)vector=[lambda-D,E];
+        const scale=Math.hypot(vector[0]/140,vector[1]/1.4);
+        vector=vector.map(x=>x/scale);
+        for(const sign of [-1,1]) {
+          let state=[root.v+sign*seed*vector[0],root.w+sign*seed*vector[1]];
+          const points=[[root.v,root.w],[...state]];
+          for(let i=0;i<Math.ceil(maxTime/dt);i++) {
+            const next=step(state,p,signTime*dt);
+            if(!next.every(Number.isFinite))break;
+            if(next[0]<-80||next[0]>60||next[1]<-0.2||next[1]>1.2) {
+              // Intersect the last segment with the full plot boundary.
+              let fraction=1;
+              for(const [j,lo,hi] of [[0,-80,60],[1,-0.2,1.2]]) {
+                if(next[j]<lo)fraction=Math.min(fraction,(lo-state[j])/(next[j]-state[j]));
+                if(next[j]>hi)fraction=Math.min(fraction,(hi-state[j])/(next[j]-state[j]));
+              }
+              state=state.map((x,j)=>x+fraction*(next[j]-x));break;
+            }
+            state=next;
+            if(i%4===0)points.push([...state]);
+            const d=rhs(state,p);
+            if(i>200&&Math.hypot(d[0]/140,d[1]/1.4)<1e-9)break;
+          }
+          points.push([...state]);
+          branches.push({kind,lambda,sign,points});
+        }
+      }
+    }
+    return branches;
+  }
   function vnull(v,p) { return (p.I-p.gCa*minf(v,p)*(v-p.ECa)-p.gL*(v-p.EL))/(p.gK*(v-p.EK)); }
-  const api={defaults,presets,equilibria,minf,winf,rhs,step,vnull};
+  const api={defaults,presets,equilibria,jacobian,saddleManifolds,minf,winf,rhs,step,vnull};
   if(typeof module!=='undefined') module.exports=api;
   root.ML=api;
 })(typeof window==='undefined'?globalThis:window);
